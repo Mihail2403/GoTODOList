@@ -1,14 +1,14 @@
 package http_handler
 
 import (
-	todo "go_todo_list"
+	"go_todo_list/entity"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
 func (h *Handler) signUp(c *gin.Context) {
-	var input todo.User
+	var input entity.User
 	if err := c.BindJSON(&input); err != nil {
 		newErrorResponse(c, http.StatusBadRequest, err.Error())
 		return

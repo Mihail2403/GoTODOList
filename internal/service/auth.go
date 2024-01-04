@@ -2,8 +2,9 @@ package service
 
 import (
 	"crypto/sha1"
+	"errors"
 	"fmt"
-	todo "go_todo_list"
+	"go_todo_list/entity"
 	"go_todo_list/internal/repository"
 	"time"
 
@@ -29,7 +30,7 @@ func NewAuthService(repo repository.Authorization) *AuthService {
 	return &AuthService{repo: repo}
 }
 
-func (s *AuthService) CreateUser(user todo.User) (int, error) {
+func (s *AuthService) CreateUser(user entity.User) (int, error) {
 	user.Password = generatePasswordHash(user.Password)
 	return s.repo.CreateUser(user)
 }
@@ -49,6 +50,24 @@ func (s *AuthService) GenerateToken(username string, password string) (string, e
 		user.Id,
 	})
 	return token.SignedString([]byte(signingKey))
+}
+func (s *AuthService) ParseToken(accessToken string) (int, error) {
+	token, err := jwt.ParseWithClaims(accessToken, &tokenClaims{}, func(t *jwt.Token) (interface{}, error) {
+		_, ok := t.Method.(*jwt.SigningMethodHMAC)
+		if !ok {
+			return nil, errors.New("invalid signing method")
+		}
+		return []byte(signingKey), nil
+	})
+	if err != nil {
+		return 0, err
+	}
+
+	claims, ok := token.Claims.(*tokenClaims)
+	if !ok {
+		return 0, errors.New("cannot cast claim to token claims")
+	}
+	return claims.UserId, nil
 }
 
 // func for generate password hashes for db

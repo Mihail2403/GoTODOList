@@ -5,7 +5,6 @@ import (
 	"go_todo_list/internal/server"
 	"go_todo_list/internal/service"
 	http_handler "go_todo_list/internal/transport/http"
-	"log"
 	"os"
 
 	"github.com/joho/godotenv"
@@ -20,7 +19,10 @@ func initConfig() error {
 }
 
 func App() {
+	// логер
 	logrus.SetFormatter(&logrus.JSONFormatter{})
+
+	// конфиг файл
 	err := initConfig()
 	if err != nil {
 		logrus.Fatalf("error init config: %s", err)
@@ -28,7 +30,8 @@ func App() {
 	if err = godotenv.Load(); err != nil {
 		logrus.Fatalf("err on load env file: %s", err)
 	}
-	log.Println(os.Getenv("DB_PASSWORD"))
+
+	// инициализация бд postgres
 	db, err := repository.NewPostgresDB(&repository.Config{
 		Host:     viper.GetString("db.host"),
 		Port:     viper.GetString("db.port"),
@@ -40,10 +43,12 @@ func App() {
 		logrus.Fatalln(err)
 	}
 
+	// внедрение зависимостей
 	repos := repository.NewRepository(db)
 	services := service.NewService(repos)
 	handlers := http_handler.NewHandler(services)
 
+	// создание и запуск сервера
 	srv := new(server.Server)
 	err = srv.Run(viper.GetString("port"), handlers.InitRoutes())
 	if err != nil {
