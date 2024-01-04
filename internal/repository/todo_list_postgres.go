@@ -53,7 +53,7 @@ func (r *TodoListPostgres) GetById(userId, listId int) (entity.TodoList, error) 
 			INNER JOIN %s ul ON tl.id = ul.list_id 
 		WHERE ul.user_id=$1 AND tl.id=$2`, todoListsTable, usersListsTable)
 	err := r.db.Get(&list, query, userId, listId)
-
+	fmt.Println(list)
 	return list, err
 }
 
