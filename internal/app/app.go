@@ -1,11 +1,14 @@
 package app
 
 import (
+	"context"
 	"go_todo_list/internal/repository"
 	"go_todo_list/internal/server"
 	"go_todo_list/internal/service"
 	http_handler "go_todo_list/internal/transport/http"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
@@ -50,8 +53,23 @@ func App() {
 
 	// создание и запуск сервера
 	srv := new(server.Server)
-	err = srv.Run(viper.GetString("port"), handlers.InitRoutes())
-	if err != nil {
-		logrus.Fatalf("error on running server: %s", err)
+	go func() {
+		err = srv.Run(viper.GetString("port"), handlers.InitRoutes())
+		if err != nil {
+			logrus.Fatalf("error on running server: %s", err)
+		}
+	}()
+	logrus.Println("App Started...")
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
+	<-quit
+	logrus.Println("App Stopped...")
+	if err := srv.ShutDown(context.Background()); err != nil {
+		logrus.Errorf("error shutting down: %s", err.Error())
 	}
+	if err := db.Close(); err != nil {
+		logrus.Errorf("error closing connection to database: %s", err.Error())
+	}
+
 }
